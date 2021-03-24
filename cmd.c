@@ -135,7 +135,10 @@ void cmd_run(command_t *cmd)
 
     if (pid > 0) {
       waitpid(pid, &status, 0);
+      set_unbuffered_io();
     } else if (pid == 0) {
+      set_buffered_io();
+
       if (cmd->stdout_redirect) {
         int fd = open(cmd->stdout_redirect, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	dup2(fd, 1);
