@@ -27,7 +27,8 @@ static char history[HISTORY_SIZE][COMMAND_SIZE];
 static int  histcnt = 0;
 static int  histcur = 0;
 
-static command_t cmd;
+static command_t cmd1;
+static command_t cmd2;
 
 static int is_keystroke(char * const line, int size) {
   if (size == 1) {
@@ -178,8 +179,13 @@ int main() {
       continue;
 
     strncpy(history[histcnt++], line, ARRAY_SIZE(history[0]));
-    cmd_parse(line, &cmd);
-    cmd_run(&cmd);
+    cmd_parse(line, &cmd1);
+    cmd_parse(NULL, &cmd2);
+
+    if (cmd2.args[0] == NULL)
+      cmd_run(&cmd1);
+    else
+      cmd_pipe(&cmd1, &cmd2);
   }
 
   set_buffered_io();

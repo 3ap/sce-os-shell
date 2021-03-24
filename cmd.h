@@ -12,5 +12,6 @@ typedef struct {
 int cmd_parse(char *line, command_t *cmd);
 void cmd_run(command_t *cmd);
 void cmd_print(command_t * const cmd);
+void cmd_pipe(command_t *cmd1, command_t *cmd2);
 
 #endif

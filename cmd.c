@@ -19,9 +19,14 @@ static int cmd_argslen(command_t * const cmd) {
   return len;
 }
 
-int cmd_parse(char *line, command_t *cmd)
+int cmd_parse(char *cmdline, command_t *cmd)
 {
-  // fprintf(stderr, "cmdline: %s", line);
+  static char *line = NULL;
+  int pos = 0;
+
+  if (cmdline != NULL)
+    line = cmdline;
+
   cmd->stdout_redirect = NULL;
 
   bool prev_is_space = false;
@@ -30,18 +35,28 @@ int cmd_parse(char *line, command_t *cmd)
   int argcnt = 0;
 
   char *curargptr = line;
-  for(int i = 0; i < len; i++) {
-    if (line[i] == ' ' && !prev_is_space) {
-      line[i] = '\0';
+  //fprintf(stderr, "cmdline: %s", curargptr);
+  //fprintf(stderr, "len: %d\n", len);
+  for(pos; pos < len; pos++) {
+    if (line[pos] == ' ' && pos == 0) {
+      curargptr++;
+      continue;
+    } else if (line[pos] == ' ' && !prev_is_space) {
+      line[pos] = '\0';
       cmd->args[argcnt++] = curargptr;
       prev_is_space = true;
-    } else if (line[i] == ' ' && prev_is_space) {
+    } else if (line[pos] == ' ' && prev_is_space) {
       continue;
-    } else if (line[i] != ' ' && prev_is_space) {
+    } else if (line[pos] != ' ' && prev_is_space) {
       prev_is_space = false;
-      curargptr = line + i;
-    } else if (line[i] == '\n') {
-      line[i] = '\0';
+      curargptr = line + pos;
+      if (line[pos] == '|') {
+        line = line + pos + 1;
+        break;
+      }
+    } else if (line[pos] == '\n') {
+      // puts("change \\n");
+      line[pos] = '\0';
       cmd->args[argcnt++] = curargptr;
     }
   }
@@ -52,6 +67,48 @@ int cmd_parse(char *line, command_t *cmd)
       cmd->stdout_redirect = cmd->args[i+1];
       cmd->args[i] = NULL;
     }
+  }
+}
+
+void cmd_pipe(command_t *cmd1, command_t *cmd2) {
+  int pipefd[2];
+  pid_t pid1, pid2;
+  int status1, status2;
+
+  if (pipe(pipefd) == -1) {
+    perror("Failed to create pipe");
+    return;
+  }
+
+  pid1 = fork();
+  if (pid1 > 0) {
+    pid2 = fork();
+    if (pid2 == -1) {
+      perror("Failed to fork proccess");
+      // TODO: kill child 1
+    }
+
+    if (pid2 > 0) {
+      // parent: close fd[0], fd[1], wait for childrens
+      close(pipefd[0]);
+      close(pipefd[1]);
+      waitpid(pid1, &status1, 0);
+      waitpid(pid2, &status2, 0);
+    } else {
+      // child 2: close fd[0], stdout -> fd[1]
+      close(pipefd[0]);
+      dup2(pipefd[1], 1);
+      close(pipefd[1]);
+      cmd_run(cmd1);
+      _exit(0);
+    }
+  } else {
+    // child 1: close fd[1], stdin <- fd[0]
+    close(pipefd[1]);
+    dup2(pipefd[0], 0);
+    close(pipefd[0]);
+    cmd_run(cmd2);
+    _exit(0);
   }
 }
 
