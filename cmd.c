@@ -13,7 +13,8 @@
 #include "builtin.h"
 #include "cmd.h"
 
-static int cmd_argslen(command_t * const cmd) {
+static int cmd_argslen(command_t * const cmd)
+{
   int len = 0;
   for(len = 0; cmd->args[len] != NULL; len++);
   return len;
@@ -35,8 +36,6 @@ int cmd_parse(char *cmdline, command_t *cmd)
   int argcnt = 0;
 
   char *curargptr = line;
-  //fprintf(stderr, "cmdline: %s", curargptr);
-  //fprintf(stderr, "len: %d\n", len);
   for(pos; pos < len; pos++) {
     if (line[pos] == ' ' && pos == 0) {
       curargptr++;
@@ -55,7 +54,6 @@ int cmd_parse(char *cmdline, command_t *cmd)
         break;
       }
     } else if (line[pos] == '\n') {
-      // puts("change \\n");
       line[pos] = '\0';
       cmd->args[argcnt++] = curargptr;
     }
@@ -135,10 +133,7 @@ void cmd_run(command_t *cmd)
 
     if (pid > 0) {
       waitpid(pid, &status, 0);
-      set_unbuffered_io();
     } else if (pid == 0) {
-      set_buffered_io();
-
       if (cmd->stdout_redirect) {
         int fd = open(cmd->stdout_redirect, O_WRONLY|O_CREAT|O_TRUNC, 0666);
 	dup2(fd, 1);
@@ -151,11 +146,4 @@ void cmd_run(command_t *cmd)
       }
     }
   }
-}
-
-void cmd_print(command_t * const cmd)
-{
-  printf("cmd: %s\n", cmd->args[0]);
-  for(int i = 0; cmd->args[i] != NULL; i++)
-    printf("args[%d] = %s\n", i, cmd->args[i]);
 }

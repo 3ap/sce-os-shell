@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <unistd.h>
-#include <stddef.h>
 #include <string.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -42,7 +41,6 @@ int builtin_pwd(int argc, char *argv[]) {
 }
 
 int builtin_exit(int argc, char *argv[]) {
-  set_buffered_io();
   _exit(0);
   return 0;
 }
