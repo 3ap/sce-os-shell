@@ -88,10 +88,12 @@ void cmd_pipe(command_t *cmd1, command_t *cmd2) {
 
     if (pid2 > 0) {
       // parent: close fd[0], fd[1], wait for childrens
+      signal(SIGINT, SIG_IGN);
       close(pipefd[0]);
       close(pipefd[1]);
       waitpid(pid1, &status1, 0);
       waitpid(pid2, &status2, 0);
+      signal(SIGINT, SIG_DFL);
     } else {
       // child 2: close fd[0], stdout -> fd[1]
       close(pipefd[0]);
@@ -132,7 +134,9 @@ void cmd_run(command_t *cmd)
     }
 
     if (pid > 0) {
+      signal(SIGINT, SIG_IGN);
       waitpid(pid, &status, 0);
+      signal(SIGINT, SIG_DFL);
     } else if (pid == 0) {
       if (cmd->stdout_redirect) {
         int fd = open(cmd->stdout_redirect, O_WRONLY|O_CREAT|O_TRUNC, 0666);
