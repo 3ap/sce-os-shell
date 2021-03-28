@@ -22,44 +22,42 @@ static int cmd_argslen(command_t * const cmd)
 
 int cmd_parse(char *cmdline, command_t *cmd)
 {
+  bool prev_is_space = true;
   static char *line = NULL;
-  int pos = 0;
-
   if (cmdline != NULL)
     line = cmdline;
-
-  cmd->stdout_redirect = NULL;
-
-  bool prev_is_space = false;
 
   size_t len = strlen(line);
   int argcnt = 0;
 
-  char *curargptr = line;
-  for(pos; pos < len; pos++) {
-    if (line[pos] == ' ' && pos == 0) {
-      curargptr++;
-      continue;
+  char *curargptr;
+  for(int pos = 0; pos < len; pos++) {
+    if (line[pos] != ' ' && prev_is_space) {
+      curargptr = line + pos;
+      prev_is_space = false;
+      if (line[pos] == '|') {
+        line = line + pos + 1;
+        break;
+      }
     } else if (line[pos] == ' ' && !prev_is_space) {
       line[pos] = '\0';
       cmd->args[argcnt++] = curargptr;
       prev_is_space = true;
     } else if (line[pos] == ' ' && prev_is_space) {
       continue;
-    } else if (line[pos] != ' ' && prev_is_space) {
-      prev_is_space = false;
-      curargptr = line + pos;
-      if (line[pos] == '|') {
-        line = line + pos + 1;
-        break;
-      }
     } else if (line[pos] == '\n') {
       line[pos] = '\0';
       cmd->args[argcnt++] = curargptr;
+    } else if (line[pos] == '|') {
+      line[pos] = '\0';
+      cmd->args[argcnt++] = curargptr;
+      line = line + pos + 1;
+      break;
     }
   }
 
-  cmd->args[argcnt++] = NULL;
+  cmd->stdout_redirect = NULL;
+  cmd->args[argcnt++]  = NULL;
   for(int i = 0; cmd->args[i] != NULL; i++) {
     if (cmd->args[i][0] == '>' && cmd->args[i+1] != NULL) {
       cmd->stdout_redirect = cmd->args[i+1];
@@ -79,10 +77,19 @@ void cmd_pipe(command_t *cmd1, command_t *cmd2) {
   }
 
   pid1 = fork();
+  if (pid1 == -1) {
+    perror("Failed to fork proccess");
+    close(pipefd[0]);
+    close(pipefd[1]);
+    return;
+  }
+
   if (pid1 > 0) {
     pid2 = fork();
     if (pid2 == -1) {
       perror("Failed to fork proccess");
+      close(pipefd[0]);
+      close(pipefd[1]);
       // TODO: kill child 1
     }
 
