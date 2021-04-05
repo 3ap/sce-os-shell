@@ -12,8 +12,9 @@
 #include "helper.h"
 #include "builtin.h"
 #include "cmd.h"
+#include "validate.h"
 
-static int cmd_argslen(command_t * const cmd)
+int cmd_argslen(command_t * const cmd)
 {
   int len = 0;
   for(len = 0; cmd->args[len] != NULL; len++);
@@ -64,9 +65,11 @@ int cmd_parse(char *cmdline, command_t *cmd)
       cmd->args[i] = NULL;
     }
   }
+
+  return 0;
 }
 
-void cmd_pipe(command_t *cmd1, command_t *cmd2) {
+void cmd_pipe(command_t * const cmd1, command_t * const cmd2) {
   int pipefd[2];
   pid_t pid1, pid2;
   int status1, status2;
@@ -119,13 +122,30 @@ void cmd_pipe(command_t *cmd1, command_t *cmd2) {
   }
 }
 
-void cmd_run(command_t *cmd)
+bool cmd_validate(command_t * const cmd)
+{
+    struct validate_info *info = validate_info_get(cmd->args[0]);
+    if (info == NULL) {
+        fprintf(stderr, "Command `%s` is not supported\n", cmd->args[0]);
+        return false;
+    }
+
+    if (!info->validate(cmd))
+        return false;
+
+    return true;
+}
+
+void cmd_run(command_t * const cmd)
 {
   pid_t pid;
   int status;
   builtin *cmdptr;
 
   if ((cmdptr = is_builtin(cmd)) != NULL) {
+    if (!cmd_validate(cmd))
+      return;
+
     dup2(1, 10);
     int fd = open(cmd->stdout_redirect, O_WRONLY|O_CREAT|O_TRUNC, 0666);
     dup2(fd, 1);
@@ -145,10 +165,13 @@ void cmd_run(command_t *cmd)
       waitpid(pid, &status, 0);
       signal(SIGINT, SIG_DFL);
     } else if (pid == 0) {
+      if (!cmd_validate(cmd))
+        _exit(2);
+
       if (cmd->stdout_redirect) {
         int fd = open(cmd->stdout_redirect, O_WRONLY|O_CREAT|O_TRUNC, 0666);
-	dup2(fd, 1);
-	close(fd);
+        dup2(fd, 1);
+        close(fd);
       }
 
       if (execvp(cmd->args[0], cmd->args) == -1) {
