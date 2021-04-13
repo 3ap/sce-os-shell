@@ -1,8 +1,16 @@
-TARGET = shell
+.SUFFIXES:
 
-$(TARGET): shell.c builtin.c cmd.c validate.c
+TARGET  = shell
+SOURCES = shell.c builtin.c cmd.c validate.c
+OBJECTS = $(SOURCES:.c=.o)
+
+all: $(TARGET)
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $@
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(OBJECTS)
 
-.PHONY: clean
+.SUFFIXES: .c .o
+.c.o:
+	$(CC) $(CFLAGS) -c $<

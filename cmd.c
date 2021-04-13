@@ -1,11 +1,11 @@
 #include <stdio.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <signal.h>
 
 #include <unistd.h>
 
@@ -23,19 +23,22 @@ int cmd_argslen(command_t * const cmd)
 
 int cmd_parse(char *cmdline, command_t *cmd)
 {
-  bool prev_is_space = true;
+  int prev_is_space = 1;
   static char *line = NULL;
+  int pos, i, argcnt;
+  size_t len;
+  char *curargptr;
+
   if (cmdline != NULL)
     line = cmdline;
 
-  size_t len = strlen(line);
-  int argcnt = 0;
+  len = strlen(line);
+  argcnt = 0;
 
-  char *curargptr;
-  for(int pos = 0; pos < len; pos++) {
+  for(pos = 0; pos < len; pos++) {
     if (line[pos] != ' ' && prev_is_space) {
       curargptr = line + pos;
-      prev_is_space = false;
+      prev_is_space = 0;
       if (line[pos] == '|') {
         line = line + pos + 1;
         break;
@@ -43,7 +46,7 @@ int cmd_parse(char *cmdline, command_t *cmd)
     } else if (line[pos] == ' ' && !prev_is_space) {
       line[pos] = '\0';
       cmd->args[argcnt++] = curargptr;
-      prev_is_space = true;
+      prev_is_space = 1;
     } else if (line[pos] == ' ' && prev_is_space) {
       continue;
     } else if (line[pos] == '\n') {
@@ -59,7 +62,7 @@ int cmd_parse(char *cmdline, command_t *cmd)
 
   cmd->stdout_redirect = NULL;
   cmd->args[argcnt++]  = NULL;
-  for(int i = 0; cmd->args[i] != NULL; i++) {
+  for(i = 0; cmd->args[i] != NULL; i++) {
     if (cmd->args[i][0] == '>' && cmd->args[i+1] != NULL) {
       cmd->stdout_redirect = cmd->args[i+1];
       cmd->args[i] = NULL;
@@ -122,24 +125,24 @@ void cmd_pipe(command_t * const cmd1, command_t * const cmd2) {
   }
 }
 
-bool cmd_validate(command_t * const cmd)
+int cmd_validate(command_t * const cmd)
 {
     struct validate_info *info = validate_info_get(cmd->args[0]);
     if (info == NULL) {
         fprintf(stderr, "Command `%s` is not supported\n", cmd->args[0]);
-        return false;
+        return 0;
     }
 
     if (!info->validate(cmd))
-        return false;
+        return 0;
 
-    return true;
+    return 1;
 }
 
 void cmd_run(command_t * const cmd)
 {
   pid_t pid;
-  int status;
+  int status, fd;
   builtin *cmdptr;
 
   if ((cmdptr = is_builtin(cmd)) != NULL) {
@@ -147,7 +150,7 @@ void cmd_run(command_t * const cmd)
       return;
 
     dup2(1, 10);
-    int fd = open(cmd->stdout_redirect, O_WRONLY|O_CREAT|O_TRUNC, 0666);
+    fd = open(cmd->stdout_redirect, O_WRONLY|O_CREAT|O_TRUNC, 0666);
     dup2(fd, 1);
     close(fd);
     cmdptr(cmd_argslen(cmd), cmd->args);
