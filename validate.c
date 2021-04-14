@@ -153,7 +153,7 @@ static int validate_ls(command_t *cmd)
 {
     if (!validate_flags(cmd, "l", 0, 0))
     {
-        fprintf(stderr, "usage: %s [OPTION] <FILE>\n", cmd->args[0]);
+        fprintf(stderr, "usage: %s [OPTION]\n", cmd->args[0]);
         fprintf(stderr, "\n");
         fprintf(stderr, "-l 	use a long listing format\n");
         return 0;
