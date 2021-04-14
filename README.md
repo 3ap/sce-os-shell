@@ -1,5 +1,17 @@
 # Write Your Own Shell
 
+## Authors
+
+  - Alina Hlazkova  (346316979)
+  - Sergey Nazaryev (342537685)
+
+## Usage
+
+```bash
+make shell
+./shell
+```
+
 ## Introduction
 
 The object of this assignment is to gain experience with some advanced
@@ -76,10 +88,3 @@ Here are the features you should support in your shell:
       directory of your computer system in the form of a tree structure. By using
       this tree structure, you can easily find out the paths of your files and
       directories.
-
-## Usage
-
-```bash
-make shell
-./shell
-```

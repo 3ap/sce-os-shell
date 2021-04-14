@@ -1,3 +1,8 @@
+/*
+ * Alina Hlazkova  (346316979)
+ * Sergey Nazaryev (342537685)
+*/
+
 #ifndef VALIDATE__H
 #define VALIDATE__H
 
