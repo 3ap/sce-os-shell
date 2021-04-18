@@ -47,7 +47,7 @@ static int validate_flags(command_t *cmd, char *valid_flags, int maximum_positio
 
     for (i = 1; i < argc; i++)
     {
-        if (cmd->args[i][0] == '-' && !flag_end) {
+        if (cmd->args[i][0] == '-' && cmd->args[i][1] != '\0' && !flag_end) {
             char flag = cmd->args[i][1];
             int flag_found = 0;
 
